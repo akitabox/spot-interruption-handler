@@ -84,12 +84,17 @@ resource "aws_lambda_permission" "this" {
   source_arn    = aws_cloudwatch_event_rule.spot.arn
 }
 
+data "archive_file" "main" {
+  type             = "zip"
+  source_file      = "${path.module}/build/main"
+  output_path      = "${path.module}/build/main.zip"
+}
 resource "null_resource" "lambda" {
   triggers = {
     filebase64 = filebase64("${path.module}/lambda/main.go")
   }
 
   provisioner "local-exec" {
-    command = "mkdir -p ${path.module}/build && GOARCH=amd64 GOOS=linux go build -ldflags='-w -s' -o ${path.module}/build/main ${path.module}/lambda/main.go"
+    command = "mkdir -p ${path.module}/build && cd ${path.module}/lambda && GOARCH=amd64 GOOS=linux go build -ldflags='-w -s' -o ../build/main main.go"
   }
 }
