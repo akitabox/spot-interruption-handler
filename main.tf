@@ -90,6 +90,6 @@ resource "null_resource" "lambda" {
   }
 
   provisioner "local-exec" {
-    command = "mkdir -p ${path.module}/build && cd ${path.module}/lambda && GOARCH=amd64 GOOS=linux go build -ldflags='-w -s' -o ../build/main main.go"
+    command = "mkdir -p ${path.module}/build && cd ${path.module}/lambda && go mod tidy && GOARCH=amd64 GOOS=linux go build -ldflags='-w -s' -o ../build/main main.go"
   }
 }
