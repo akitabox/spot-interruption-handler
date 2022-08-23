@@ -61,7 +61,7 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 			if err != nil {
 				log.Printf("ERROR - Unable to get autoscaling group metadata of of %s - %v", detail.InstanceID, err)
 			}
-			
+
 			// Detach the instance from autoscaling group to also drain the connection from Load Balancer
 			_, err = asg.DetachInstances(&autoscaling.DetachInstancesInput{
 				AutoScalingGroupName: asgInstance.AutoScalingGroupName,
@@ -75,10 +75,11 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 			}
 			
 			for _, instanceGroup := range autoScalingGroupOutput.AutoScalingGroups{
-				log.Printf("INFO - ASG Name %s", instanceGroup.AutoScalingGroupName)
+				log.Printf("INFO - ASG Name %v", *instanceGroup.AutoScalingGroupName)
 				if asgInstance.AutoScalingGroupName == instanceGroup.AutoScalingGroupName{
-					desSize= *instanceGroup.DesiredCapacity
+					desSize = *instanceGroup.DesiredCapacity
 					maxSize = *instanceGroup.MaxSize
+				log.Printf("Info - Desired: %d, Maximum: %d", desSize, maxSize)
 				}
 			}
 
