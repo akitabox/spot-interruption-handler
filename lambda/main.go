@@ -48,6 +48,8 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 			log.Printf("ERROR - Unable to get autoscaling group metadata of of %s - %v", detail.InstanceID, err)
 		}
 
+		log.Printf("%+v\n", autoScalingInstanceOutput)
+
 		for _, asgInstance := range autoScalingInstanceOutput.AutoScalingInstances {
 			log.Printf("INFO - Handling %s of %s", event.DetailType, aws.StringValue(asgInstance.AutoScalingGroupName))
 			// If instance < 2, scale out to 2 to avoid unexpected downtime during detach operation
