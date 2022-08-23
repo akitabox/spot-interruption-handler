@@ -45,6 +45,7 @@ data "aws_iam_policy_document" "lambda_policy" {
       "autoscaling:DescribeAutoScalingInstances",
       "autoscaling:DetachInstances",
       "autoscaling:SetDesiredCapacity",
+      "autoscaling:DescribeAutoScalingGroups",
     ]
 
     resources = [
