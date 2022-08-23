@@ -76,7 +76,7 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 			
 			for _, instanceGroup := range autoScalingGroupOutput.AutoScalingGroups{
 				log.Printf("INFO - ASG Name %v", *instanceGroup.AutoScalingGroupName)
-				if asgInstance.AutoScalingGroupName == instanceGroup.AutoScalingGroupName{
+				if aws.StringValue(asgInstance.AutoScalingGroupName) == aws.StringValue(instanceGroup.AutoScalingGroupName){
 					desSize = *instanceGroup.DesiredCapacity
 					maxSize = *instanceGroup.MaxSize
 				log.Printf("Info - Desired: %d, Maximum: %d", desSize, maxSize)
