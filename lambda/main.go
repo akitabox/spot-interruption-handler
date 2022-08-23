@@ -79,15 +79,14 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 				if aws.StringValue(asgInstance.AutoScalingGroupName) == aws.StringValue(instanceGroup.AutoScalingGroupName){
 					desSize = *instanceGroup.DesiredCapacity
 					maxSize = *instanceGroup.MaxSize
-				log.Printf("Info - Desired: %d, Maximum: %d", desSize, maxSize)
 				}
 			}
+			log.Printf("Info - Desired: %d, Maximum: %d", desSize, maxSize)
 
 			if desSize < maxSize {
-				desSize = desSize + 1
 				_, err = asg.SetDesiredCapacity(&autoscaling.SetDesiredCapacityInput{
 					AutoScalingGroupName: asgInstance.AutoScalingGroupName,
-					DesiredCapacity:      aws.Int64(desSize),
+					DesiredCapacity:      aws.Int64(desSize + 1),
 					HonorCooldown:        aws.Bool(false),
 				})
 				if err != nil {
