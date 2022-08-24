@@ -52,7 +52,6 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 
 		for _, asgInstance := range autoScalingInstanceOutput.AutoScalingInstances {
 			log.Printf("INFO - Handling %s of %s", event.DetailType, aws.StringValue(asgInstance.AutoScalingGroupName))
-			// If instance < 2, scale out to 2 to avoid unexpected downtime during detach operation
 			autoScalingGroupOutput, err := asg.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
 				AutoScalingGroupNames: []*string{
 					asgInstance.AutoScalingGroupName,
@@ -83,6 +82,7 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 			}
 			log.Printf("Info - Desired: %d, Maximum: %d", desSize, maxSize)
 
+			// If the Desired Capacity of the ASG is less than Maximum Size, then increase Desired Capacity by one.
 			if desSize < maxSize {
 				log.Printf("Increasing ASG Desired Size from %d to %d", desSize, desSize + 1)
 				_, err = asg.SetDesiredCapacity(&autoscaling.SetDesiredCapacityInput{
