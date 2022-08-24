@@ -27,6 +27,7 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 
 	// Declare variables
 	var detail eventDetail
+	var desSize, maxSize int64
 
 	// Validate event detail
 	if strings.Contains(event.DetailType, "EC2 Spot Instance Interruption Warning") && event.Source == "aws.ec2" {
@@ -48,13 +49,45 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 			log.Printf("ERROR - Unable to get autoscaling group metadata of of %s - %v", detail.InstanceID, err)
 		}
 
+
 		for _, asgInstance := range autoScalingInstanceOutput.AutoScalingInstances {
 			log.Printf("INFO - Handling %s of %s", event.DetailType, aws.StringValue(asgInstance.AutoScalingGroupName))
-			// If instance < 2, scale out to 2 to avoid unexpected downtime during detach operation
-			if len(autoScalingInstanceOutput.AutoScalingInstances) < 2 {
+			autoScalingGroupOutput, err := asg.DescribeAutoScalingGroups(&autoscaling.DescribeAutoScalingGroupsInput{
+				AutoScalingGroupNames: []*string{
+					asgInstance.AutoScalingGroupName,
+				},
+			})
+			if err != nil {
+				log.Printf("ERROR - Unable to get autoscaling group metadata of of %s - %v", detail.InstanceID, err)
+			}
+
+			// Detach the instance from autoscaling group to also drain the connection from Load Balancer
+			_, err = asg.DetachInstances(&autoscaling.DetachInstancesInput{
+				AutoScalingGroupName: asgInstance.AutoScalingGroupName,
+				InstanceIds: []*string{
+					aws.String(detail.InstanceID),
+				},
+				ShouldDecrementDesiredCapacity: aws.Bool(false),
+			})
+			if err != nil {
+				log.Printf("ERROR - Unable to detach %s from autoscaling-group %s - %v", detail.InstanceID, aws.StringValue(asgInstance.AutoScalingGroupName), err)
+			}
+			
+			for _, instanceGroup := range autoScalingGroupOutput.AutoScalingGroups{
+				log.Printf("INFO - ASG Name %v", *instanceGroup.AutoScalingGroupName)
+				if aws.StringValue(asgInstance.AutoScalingGroupName) == aws.StringValue(instanceGroup.AutoScalingGroupName){
+					desSize = *instanceGroup.DesiredCapacity
+					maxSize = *instanceGroup.MaxSize
+				}
+			}
+			log.Printf("Info - Desired: %d, Maximum: %d", desSize, maxSize)
+
+			// If the Desired Capacity of the ASG is less than Maximum Size, then increase Desired Capacity by one.
+			if desSize < maxSize {
+				log.Printf("Increasing ASG Desired Size from %d to %d", desSize, desSize + 1)
 				_, err = asg.SetDesiredCapacity(&autoscaling.SetDesiredCapacityInput{
 					AutoScalingGroupName: asgInstance.AutoScalingGroupName,
-					DesiredCapacity:      aws.Int64(2),
+					DesiredCapacity:      aws.Int64(desSize + 1),
 					HonorCooldown:        aws.Bool(false),
 				})
 				if err != nil {
@@ -91,18 +124,6 @@ func handleRequest(ctx context.Context, event events.CloudWatchEvent) {
 						asgInstance.AutoScalingGroupName,
 					},
 				})
-			}
-
-			// Detach the instance from autoscaling group to also drain the connection from Load Balancer
-			_, err = asg.DetachInstances(&autoscaling.DetachInstancesInput{
-				AutoScalingGroupName: asgInstance.AutoScalingGroupName,
-				InstanceIds: []*string{
-					aws.String(detail.InstanceID),
-				},
-				ShouldDecrementDesiredCapacity: aws.Bool(false),
-			})
-			if err != nil {
-				log.Printf("ERROR - Unable to detach %s from autoscaling-group %s - %v", detail.InstanceID, aws.StringValue(asgInstance.AutoScalingGroupName), err)
 			}
 		}
 	}

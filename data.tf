@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "lambda_policy" {
     ]
 
     resources = [
-      "${aws_cloudwatch_log_group.this.arn}",
+      "${aws_cloudwatch_log_group.this.arn}:*",
     ]
   }
 
@@ -45,6 +45,7 @@ data "aws_iam_policy_document" "lambda_policy" {
       "autoscaling:DescribeAutoScalingInstances",
       "autoscaling:DetachInstances",
       "autoscaling:SetDesiredCapacity",
+      "autoscaling:DescribeAutoScalingGroups",
     ]
 
     resources = [
